@@ -1,37 +1,30 @@
 const { doc } = require("prettier");
 
 const _C = document.querySelector('.container'),
-    N = _C.children.length, NF = 30;
-    TFN = {/*
-        'linear': function(k) { return k },
-        'ease-in': function(k, e = 1.675) {
-            return Math.pow(k, e)
-        },
-        'ease-out': function(k, e = 1.675) {
-            return 1 - Math.pow(1-k, e)
-        },
-        'ease-in-out': function(k) {
-			return .5*(Math.sin((k - .5)*Math.PI) + 1)
-		}*/
-        'bounce-out': function(k, a = 2.75, b = 1.5) {
-            return 1 - Math.pow(1 - k, a)*Math.abs(Math.cos(Math.pow(k, b)*(n + .5)*Math.PI))
-        }
-    }
+    N = _C.children.length, NF = 30; //число кадров за которое выполняется анимация
 
-let i = 0, x0 = null, locked = false, w, ini, fin, rID = null, anf ,n;
+let i = 0, // текущий слайд
+    x0 = null, //координата начала клика
+    locked = false, //
+    w, // ширина включая прокрутку
+    ini, // начальное значение в начале анимации для --i
+    fin, // финальное значение в конце анимации, целочисленное для перехода на след слайд
+    rID = null, 
+    anf , //фактическое кол-во кадров.
+    n; //число слайдов
 
 function stopAni() {
     cancelAnimationFrame(rID);
     rID = null;
 };
 
-function ani(cf = 0) {
-    const prevI = i;
-    const nextI = ini + (fin - ini)*TFN['bounce-out'](cf/anf);
+function ani(cf = 0) { //cf индекс текущего кадра. ф-ция анимации
+    const prevI = i; 
+    const nextI = ini + (fin - ini)*(cf/anf);
 
-    _C.style.setProperty('--i', nextI || prevI);
+    _C.style.setProperty('--i', nextI || prevI); //по сути анимация просто отрисовывает в зависимости от слайда.
 
-    if(cf === anf) {
+    if(cf === anf) { //если текущий кадр равен фактическому т.е. коннечному то анимация не нужна, остановка анимации.
         stopAni();
         return;
     }
@@ -39,16 +32,16 @@ function ani(cf = 0) {
     rID = requestAnimationFrame(ani.bind(this, ++cf))
 };
 
-function unify(e) {
+function unify(e) { //унифицируем клик и touch
     return e.changedTouches ? e.changedTouches[0] : e 
 };
 
-function lock(e) { 
+function lock(e) { // блокировка на touchstart или mousedown получением и сохранением оси х в исходной переменной х0 
     x0 = unify(e).clientX;
     locked = true;
 };
 
-function drag(e) {
+function drag(e) { //ф-ция перетаскивания
     e.preventDefault();
 
     if(e.target !== e.currentTarget) {
@@ -57,22 +50,22 @@ function drag(e) {
 
     if(locked) {
         let dx = unify(e).clientX - x0, f = +(dx/w).toFixed(2);
-        _C.style.setProperty('--i', i - f);
+        _C.style.setProperty('--i', i - f); //отрисовка контейнера по номеру слайда i. Если целичисленное переход на след. Если меньше 0.2 след слайд не отрисовывать.
     }
 
 };
 
-function move(e) {
+function move(e) { //для перемещения контейнера проверка на выполнение блокировки. В таком случае вычисляем разницу между текущей координатой х и х0.
     if(locked) {
-        let dx = unify(e).clientX - x0,
+        let dx = unify(e).clientX - x0, //dx differenceX - разница между положениями координаты х.  
             s = Math.sign(dx),
             f = +(s*dx/w).toFixed(2);
 
         ini = i - s*f;
 
-        if((i > 0 || s < 0) && (i < N - 1 || s > 0) && f > .2) {
-            i -= s;
-            f = 1 - f;
+        if((i > 0 || s < 0) && (i < N - 1 || s > 0) && f > .2) { //если есть след слайд в нужном направлении то достаточно перетащить f на 0,2 для перехода.
+            i -= s; // i индекс текущего значения
+            f = 1 - f; // f относительное расстояние для него
         }
 
         fin = i;
@@ -105,15 +98,6 @@ btnSwipe1.addEventListener('click', () => {
 size();
 _C.style.setProperty('--n', N);
 
-
-const input = document.querySelector("input");
-
-input.addEventListener("change", event => {
-    console.log(event);
-    const inputTargVal = event.target.value;
-    document.querySelector('.content').style.transform = `translateY(-${inputTargVal}%)`;
-});
-
 addEventListener('resize', size, false);
 
 _C.addEventListener('mousedown', lock, false);
@@ -126,6 +110,68 @@ _C.addEventListener('mouseup', move, false);
 _C.addEventListener('touchend', move, false);
 
 
+// скролл через div
+const trackEl = document.querySelector('.track');
+        const barEl = document.querySelector('.bar');
+        const contentEl = document.querySelector('.content');
+        const wrapperEl = document.querySelector('.swipe2-wrapper');
+        const contentScrollableEl = document.querySelector('.content-scrollable');
+
+        const contentHeight = contentEl.getBoundingClientRect().height;
+        const contentScrollableHeight = contentScrollableEl.getBoundingClientRect().height;
+        const offsetMax = wrapperEl.getBoundingClientRect().height - barEl.getBoundingClientRect().height;
+        const trackElTop = trackEl.getBoundingClientRect().top;
+
+        function setBarOffset(offset) { //отступ бар с учетом мин и макс
+            if (offset < 0) offset = 0;
+            if (offset > offsetMax) offset = offsetMax;
+            barEl.style.top = `${offset}px`;
+        }
+
+        function handleMouseDown(e) { //подписываемся на событие перетаскивания и отпускания мышки
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('touchmove', handleTouchDrag);
+            document.addEventListener('touchend', handleMouseUp);
+        }
+
+        function handleDrag(e) {
+            e.preventDefault();
+            const offset = e.pageY - trackElTop;
+            setBarOffset(offset);
+            const dragPerc = offset / offsetMax;
+            const scrollPos = dragPerc * (contentHeight - contentScrollableHeight);
+            contentScrollableEl.scrollTop = scrollPos;
+        }
+
+        function handleMouseUp(e) {
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('touchmove', handleTouchDrag);
+            document.removeEventListener('touchend', handleMouseUp);
+            
+        }
+
+        function handleScroll(e) {
+            const scrollPos = contentScrollableEl.scrollTop = contentScrollableEl.scrollTop + e.deltaY;
+            const dragPerc = scrollPos / (contentHeight - contentScrollableHeight);
+            const offset = dragPerc * offsetMax;
+            setBarOffset(offset);
+        }
+
+        function handleTouchDrag(e) {
+            const offset = e.changedTouches[0].pageY - trackElTop;
+            setBarOffset(offset);
+            const dragPerc = offset / offsetMax;
+            const scrollPos = dragPerc * (contentHeight - contentScrollableHeight);
+            contentScrollableEl.scrollTop = scrollPos;
+        }
+
+        barEl.addEventListener('mousedown', handleMouseDown);
+        barEl.addEventListener('touchstart', handleMouseDown);
+        contentScrollableEl.addEventListener('wheel', handleScroll);
+        contentScrollableEl.addEventListener('touchmove', handleScroll);
+//
 
 let modal = document.getElementById("myModal");
 let btn = document.getElementById("myBtn");
