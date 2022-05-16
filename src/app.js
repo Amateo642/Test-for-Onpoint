@@ -112,65 +112,70 @@ CONTAINER.addEventListener('touchend', move, false);
 
 // скролл через div
 const trackEl = document.querySelector('.track');
-        const barEl = document.querySelector('.bar');
-        const contentEl = document.querySelector('.content');
-        const wrapperEl = document.querySelector('.swipe2-wrapper');
-        const contentScrollableEl = document.querySelector('.content-scrollable');
+const barEl = document.querySelector('.bar');
+const contentEl = document.querySelector('.content');
+const wrapperEl = document.querySelector('.swipe2-wrapper');
+const contentScrollableEl = document.querySelector('.content-scrollable');
 
-        const contentHeight = contentEl.getBoundingClientRect().height;
-        const contentScrollableHeight = contentScrollableEl.getBoundingClientRect().height;
-        const offsetMax = wrapperEl.getBoundingClientRect().height - barEl.getBoundingClientRect().height;
-        const trackElTop = trackEl.getBoundingClientRect().top;
+const contentHeight = contentEl.getBoundingClientRect().height;
+const contentScrollableHeight = contentScrollableEl.getBoundingClientRect().height;
+const offsetMax = wrapperEl.getBoundingClientRect().height - barEl.getBoundingClientRect().height;
+const trackElTop = trackEl.getBoundingClientRect().top;
 
-        function setBarOffset(offset) { //отступ бар с учетом мин и макс
-            if (offset < 0) offset = 0;
-            if (offset > offsetMax) offset = offsetMax;
-            barEl.style.top = `${offset}px`;
-        }
+let barClickOffset;
 
-        function handleMouseDown(e) { //подписываемся на событие перетаскивания и отпускания мышки
-            document.addEventListener('mousemove', handleDrag);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.addEventListener('touchmove', handleTouchDrag);
-            document.addEventListener('touchend', handleMouseUp);
-        }
+function setBarOffset(offset) { //отступ бар с учетом мин и макс
+    if (offset < 0) offset = 0;
+    if (offset > offsetMax) offset = offsetMax;
+    barEl.style.top = `${offset}px`;
+}
 
-        function handleDrag(e) {
-            e.preventDefault();
-            const offset = e.pageY - trackElTop;
-            setBarOffset(offset);
-            const dragPerc = offset / offsetMax;
-            const scrollPos = dragPerc * (contentHeight - contentScrollableHeight);
-            contentScrollableEl.scrollTop = scrollPos;
-        }
+function handleMouseDown(e) { //подписываемся на событие перетаскивания и отпускания мышки
+    const clickPos = e.pageY;
+    const barPos = barEl.getBoundingClientRect().top;
+    barClickOffset = clickPos - barPos;
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchDrag);
+    document.addEventListener('touchend', handleMouseUp);
+}
 
-        function handleMouseUp(e) {
-            document.removeEventListener('mousemove', handleDrag);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.removeEventListener('touchmove', handleTouchDrag);
-            document.removeEventListener('touchend', handleMouseUp);
-            
-        }
+function handleDrag(e) {
+    e.preventDefault();
+    const offset = e.pageY - trackElTop - barClickOffset;
+    setBarOffset(offset);
+    const dragPerc = offset / offsetMax;
+    const scrollPos = dragPerc * (contentHeight - contentScrollableHeight);
+    contentScrollableEl.scrollTop = scrollPos;
+}
 
-        function handleScroll(e) {
-            const scrollPos = contentScrollableEl.scrollTop = contentScrollableEl.scrollTop + e.deltaY;
-            const dragPerc = scrollPos / (contentHeight - contentScrollableHeight);
-            const offset = dragPerc * offsetMax;
-            setBarOffset(offset);
-        }
+function handleMouseUp(e) {
+    document.removeEventListener('mousemove', handleDrag);
+    document.removeEventListener('mouseup', handleMouseUp);
+    document.removeEventListener('touchmove', handleTouchDrag);
+    document.removeEventListener('touchend', handleMouseUp);
+    
+}
 
-        function handleTouchDrag(e) {
-            const offset = e.changedTouches[0].pageY - trackElTop;
-            setBarOffset(offset);
-            const dragPerc = offset / offsetMax;
-            const scrollPos = dragPerc * (contentHeight - contentScrollableHeight);
-            contentScrollableEl.scrollTop = scrollPos;
-        }
+function handleScroll(e) {
+    const scrollPos = contentScrollableEl.scrollTop = contentScrollableEl.scrollTop + e.deltaY;
+    const dragPerc = scrollPos / (contentHeight - contentScrollableHeight);
+    const offset = dragPerc * offsetMax;
+    setBarOffset(offset);
+}
 
-        barEl.addEventListener('mousedown', handleMouseDown);
-        barEl.addEventListener('touchstart', handleMouseDown);
-        contentScrollableEl.addEventListener('wheel', handleScroll);
-        contentScrollableEl.addEventListener('touchmove', handleScroll);
+function handleTouchDrag(e) {
+    const offset = e.changedTouches[0].pageY - trackElTop;
+    setBarOffset(offset);
+    const dragPerc = offset / offsetMax;
+    const scrollPos = dragPerc * (contentHeight - contentScrollableHeight);
+    contentScrollableEl.scrollTop = scrollPos;
+}
+
+barEl.addEventListener('mousedown', handleMouseDown);
+barEl.addEventListener('touchstart', handleMouseDown);
+contentScrollableEl.addEventListener('wheel', handleScroll);
+contentScrollableEl.addEventListener('touchmove', handleScroll);
 //
 
 let modal = document.getElementById("myModal");
