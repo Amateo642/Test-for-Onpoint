@@ -1,35 +1,35 @@
 const { doc } = require("prettier");
 
-const _C = document.querySelector('.container'),
-    N = _C.children.length, NF = 30; //число кадров за которое выполняется анимация
+const CONTAINER = document.querySelector('.container'),
+    N = CONTAINER.children.length, NumberFrames = 30; //число кадров за которое выполняется анимация
 
 let i = 0, // текущий слайд
     x0 = null, //координата начала клика
     locked = false, //
-    w, // ширина включая прокрутку
-    ini, // начальное значение в начале анимации для --i
-    fin, // финальное значение в конце анимации, целочисленное для перехода на след слайд
-    rID = null, 
-    anf , //фактическое кол-во кадров.
+    widthView, // ширина включая прокрутку
+    initialPosition, // начальное значение в начале анимации для --i
+    finalPosition, // финальное значение в конце анимации, целочисленное для перехода на след слайд
+    ridTransition = null, 
+    actualNumberFrame , //фактическое кол-во кадров.
     n; //число слайдов
 
-function stopAni() {
-    cancelAnimationFrame(rID);
-    rID = null;
+function stopAnimation() {
+    cancelAnimationFrame(ridTransition);
+    ridTransition = null;
 };
 
-function ani(cf = 0) { //cf индекс текущего кадра. ф-ция анимации
+function animationFrame(currentFrame = 0) { //cf индекс текущего кадра. ф-ция анимации
     const prevI = i; 
-    const nextI = ini + (fin - ini)*(cf/anf);
+    const nextI = initialPosition + (finalPosition - initialPosition)*(currentFrame/actualNumberFrame);
 
-    _C.style.setProperty('--i', nextI || prevI); //по сути анимация просто отрисовывает в зависимости от слайда.
+    CONTAINER.style.setProperty('--i', nextI || prevI); //по сути анимация просто отрисовывает в зависимости от слайда.
 
-    if(cf === anf) { //если текущий кадр равен фактическому т.е. коннечному то анимация не нужна, остановка анимации.
-        stopAni();
+    if(currentFrame === actualNumberFrame) { //если текущий кадр равен фактическому т.е. коннечному то анимация не нужна, остановка анимации.
+        stopAnimation();
         return;
     }
 
-    rID = requestAnimationFrame(ani.bind(this, ++cf))
+    ridTransition = requestAnimationFrame(animationFrame.bind(this, ++currentFrame))
 };
 
 function unify(e) { //унифицируем клик и touch
@@ -49,8 +49,8 @@ function drag(e) { //ф-ция перетаскивания
     }
 
     if(locked) {
-        let dx = unify(e).clientX - x0, f = +(dx/w).toFixed(2);
-        _C.style.setProperty('--i', i - f); //отрисовка контейнера по номеру слайда i. Если целичисленное переход на след. Если меньше 0.2 след слайд не отрисовывать.
+        let dx = unify(e).clientX - x0, f = +(dx/widthView).toFixed(2);
+        CONTAINER.style.setProperty('--i', i - f); //отрисовка контейнера по номеру слайда i. Если целичисленное переход на след. Если меньше 0.2 след слайд не отрисовывать.
     }
 
 };
@@ -59,29 +59,29 @@ function move(e) { //для перемещения контейнера пров
     if(locked) {
         let dx = unify(e).clientX - x0, //dx differenceX - разница между положениями координаты х.  
             s = Math.sign(dx),
-            f = +(s*dx/w).toFixed(2);
+            f = +(s*dx/widthView).toFixed(2);
 
-        ini = i - s*f;
+        initialPosition = i - s*f;
 
         if((i > 0 || s < 0) && (i < N - 1 || s > 0) && f > .2) { //если есть след слайд в нужном направлении то достаточно перетащить f на 0,2 для перехода.
             i -= s; // i индекс текущего значения
             f = 1 - f; // f относительное расстояние для него
         }
 
-        fin = i;
-        anf = Math.round(f*NF);
+        finalPosition = i;
+        actualNumberFrame = Math.round(f*NumberFrames);
         n = 2 + Math.round(f);
-        ani();
+        animationFrame();
         x0 = null;
         locked = false;
     }
 };
 
-function size() { w = window.innerWidth };
+function size() { widthView = window.innerWidth };
 
 function moveTo(_i) {
     i = _i;
-    _C.style.setProperty('--i', _i);
+    CONTAINER.style.setProperty('--i', _i);
 }
 
 const header = document.querySelector('header');
@@ -96,18 +96,18 @@ btnSwipe1.addEventListener('click', () => {
 });
 
 size();
-_C.style.setProperty('--n', N);
+CONTAINER.style.setProperty('--n', N);
 
 addEventListener('resize', size, false);
 
-_C.addEventListener('mousedown', lock, false);
-_C.addEventListener('touchstart', lock, false);
+CONTAINER.addEventListener('mousedown', lock, false);
+CONTAINER.addEventListener('touchstart', lock, false);
 
-_C.addEventListener('mousemove', drag, false);
-_C.addEventListener('touchmove', drag, false);
+CONTAINER.addEventListener('mousemove', drag, false);
+CONTAINER.addEventListener('touchmove', drag, false);
 
-_C.addEventListener('mouseup', move, false);
-_C.addEventListener('touchend', move, false);
+CONTAINER.addEventListener('mouseup', move, false);
+CONTAINER.addEventListener('touchend', move, false);
 
 
 // скролл через div
